@@ -8,6 +8,9 @@ import com.dsmc.api.packages.PackageResource;
 import com.dsmc.api.packages.PackageService;
 import com.dsmc.api.students.StudentResource;
 import com.dsmc.api.students.StudentService;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mongodb.*;
 import com.mongodb.client.MongoDatabase;
 import org.slf4j.Logger;
@@ -19,17 +22,16 @@ import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.ipAddress;
 import static spark.Spark.port;
+
 /**
  * Copyright 2015 Marvin Charles
  */
-public class App
-{
+public class App {
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
-    private static final String IP_ADDRESS = System.getenv("OPENSHIFT_DIY_IP") != null ? System.getenv("OPENSHIFT_DIY_IP") : "localhost";
-    private static final int PORT = System.getenv("OPENSHIFT_DIY_PORT") != null ? Integer.parseInt(System.getenv("OPENSHIFT_DIY_PORT")) : 8080;
+    private static final int PORT = System.getenv("CF_INSTANCE_PORT") != null ? Integer.parseInt(System.getenv("PORT")) : 8080;
+    private static final String DB_SERVICE_NAME = "dsmc-db";
 
     public static void main(String[] args) throws Exception {
-        ipAddress(IP_ADDRESS);
         port(PORT);
         SerializationProvider serializationProvider = new JacksonSerializationProvider();
         MongoDatabase connection = mongo();
@@ -45,19 +47,27 @@ public class App
     }
 
     private static MongoDatabase mongo() throws Exception {
-        
-        if (IP_ADDRESS.equals("localhost")) {
-            MongoClient mongoClient = new MongoClient("localhost");
-            return mongoClient.getDatabase("dsmc");
-        }
-        String host = System.getenv("OPENSHIFT_MONGODB_DB_HOST");
-        int port = Integer.parseInt(System.getenv("OPENSHIFT_MONGODB_DB_PORT"));
-        String database = System.getenv("OPENSHIFT_APP_NAME");
-        String username = System.getenv("OPENSHIFT_MONGODB_DB_USERNAME");
-        String password = System.getenv("OPENSHIFT_MONGODB_DB_PASSWORD");
-        MongoCredential credential = MongoCredential.createCredential(username, database, password.toCharArray());
-        MongoClient mongoClient = new MongoClient(new ServerAddress(host, port), Collections.singletonList(credential));
+        MongoClientURI clientURI = new MongoClientURI(getConnectionUri());
+        MongoClient mongoClient = new MongoClient(clientURI);
         mongoClient.setWriteConcern(WriteConcern.SAFE);
-        return mongoClient.getDatabase(database);
+        return mongoClient.getDatabase(clientURI.getDatabase());
+    }
+
+    private static String getConnectionUri() {
+        try {
+            JsonParser parser = new JsonParser();
+            JsonObject cfg = (JsonObject) parser.parse(System.getenv("VCAP_SERVICES"));
+            for (JsonElement conn : cfg.getAsJsonArray("mongolab")) {
+                if (conn instanceof JsonObject) {
+                    JsonObject obj = (JsonObject) conn;
+                    if (DB_SERVICE_NAME.equals(obj.get("name").getAsString())) {
+                        return ((JsonObject) obj.get("credentials")).get("uri").getAsString();
+                    }
+                }
+            }
+        } catch (Exception ignore) {
+
+        }
+        throw new RuntimeException("Database service not configured.");
     }
 }
