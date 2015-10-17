@@ -3,7 +3,7 @@ applications:
 - name: dsmc-api
   memory: 256MB
   instances: 2
-  path: build/libs/my-application-version.jar
+  path: build/libs/dsmc-SNAPSHOT.jar
   buildpack: https://github.com/cloudfoundry/java-buildpack.git
   services:
      - dsmc-db
