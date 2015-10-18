@@ -11,17 +11,14 @@ import com.dsmc.api.students.StudentService;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.mongodb.*;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-
-import static spark.Spark.after;
-import static spark.Spark.before;
-import static spark.Spark.ipAddress;
-import static spark.Spark.port;
+import static spark.Spark.*;
 
 /**
  * Copyright 2015 Marvin Charles
@@ -39,7 +36,18 @@ public class App {
         new PackageResource(new PackageService(connection), serializationProvider);
         new InstructorResource(new InstructorService(connection), serializationProvider);
 
-        before((request, response) -> LOGGER.info("Handling: {} {}", request.requestMethod(), request.uri()));
+        //enable CORS
+        before((request, response) -> {
+            //TODO make this more restrictive
+            response.header("Access-Control-Allow-Origin", "*");
+            response.header("Access-Control-Request-Method", "*");
+            response.header("Access-Control-Allow-Headers", "*");
+        });
+
+        //add request logging
+        before((request, response) -> LOGGER.debug("Handling: {} {}", request.requestMethod(), request.uri()));
+
+        //caching headers
         after((req, res) -> {
             res.header("Cache-Control", "private, no-store, no-cache, must-revalidate");
             res.header("Pragma", "no-cache");
@@ -65,8 +73,8 @@ public class App {
                     }
                 }
             }
-        } catch (Exception ignore) {
-
+        } catch (Exception e) {
+            LOGGER.error("Error getting database connection info.", e);
         }
         throw new RuntimeException("Database service not configured.");
     }
