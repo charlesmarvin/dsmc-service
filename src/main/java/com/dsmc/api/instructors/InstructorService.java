@@ -14,12 +14,12 @@ public class InstructorService extends MongoCrudService<String, Instructor> {
 
     @Override
     public Instructor toModel(Document document) {
-        return null;
+        return new Instructor(document);
     }
 
     @Override
-    public Document toEntity(Instructor o) {
-        return null;
+    public Document toEntity(Instructor instructor) {
+        return Instructor.asDocument(instructor);
     }
 
     @Override
