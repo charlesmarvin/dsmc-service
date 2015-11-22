@@ -1,29 +1,23 @@
 package com.dsmc.api.instructors;
 
-import com.dsmc.api.common.MongoCrudService;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
+import com.dsmc.data.tables.pojos.Instructor;
+import org.jooq.DSLContext;
 
-/**
- * Copyright 2015 Marvin Charles
- */
-public class InstructorService extends MongoCrudService<String, Instructor> {
-    public InstructorService(MongoDatabase mongo) {
-        super(mongo.getCollection("instructors"));
+import java.util.List;
+
+public class InstructorService {
+    private final DSLContext context;
+
+    public InstructorService(DSLContext context) {
+        this.context = context;
     }
 
-    @Override
-    public Instructor toModel(Document document) {
-        return new Instructor(document);
-    }
-
-    @Override
-    public Document toEntity(Instructor instructor) {
-        return Instructor.asDocument(instructor);
-    }
-
-    @Override
-    public String getKey(Instructor o) {
-        return o.getId();
+    public List<Instructor> getInstructors(Integer companyId){
+        com.dsmc.data.tables.Instructor i = com.dsmc.data.tables.Instructor.INSTRUCTOR.as("i");
+        return context.select()
+                .from(i)
+                .where(i.COMPANY_ID.equal(companyId))
+                .fetch()
+                .into(Instructor.class);
     }
 }

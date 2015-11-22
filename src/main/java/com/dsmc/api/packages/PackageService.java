@@ -1,29 +1,24 @@
 package com.dsmc.api.packages;
 
-import com.dsmc.api.common.MongoCrudService;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
+import com.dsmc.data.tables.pojos.CoursePackage;
+import org.jooq.DSLContext;
 
-/**
- * Copyright 2015 Marvin Charles
- */
-public class PackageService extends MongoCrudService<String, Package>{
-    public PackageService(MongoDatabase mongo) {
-        super(mongo.getCollection("packages"));
+import java.util.List;
+
+public class PackageService {
+
+    private final DSLContext context;
+
+    public PackageService(DSLContext context) {
+        this.context = context;
     }
 
-    @Override
-    public Package toModel(Document document) {
-        return new Package(document);
-    }
-
-    @Override
-    public Document toEntity(Package o) {
-        return Package.asDocument(o);
-    }
-
-    @Override
-    public String getKey(Package o) {
-        return o.getId();
+    public List<CoursePackage> getPackages(Integer companyId) {
+        com.dsmc.data.tables.CoursePackage c = com.dsmc.data.tables.CoursePackage.COURSE_PACKAGE.as("c");
+        return context.select()
+                .from(c)
+                .where(c.COMPANY_ID.equal(companyId))
+                .fetch()
+                .into(CoursePackage.class);
     }
 }

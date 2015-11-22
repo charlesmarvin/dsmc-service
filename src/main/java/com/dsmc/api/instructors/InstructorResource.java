@@ -1,18 +1,30 @@
 package com.dsmc.api.instructors;
 
-import com.dsmc.api.common.CrudResource;
+import com.dsmc.api.auth.AuthUserRequestManager;
+import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
 
-/**
- * Copyright 2015 Marvin Charles
- */
-public class InstructorResource extends CrudResource<String, Instructor> {
-    public InstructorResource(InstructorService service, SerializationProvider serializationProvider) {
-        super(Instructor.class, service, serializationProvider);
+import static spark.Spark.get;
+
+public class InstructorResource {
+    private final String context;
+    private final InstructorService service;
+    private final SerializationProvider serializationProvider;
+
+    public InstructorResource(String context, InstructorService service, SerializationProvider serializationProvider) {
+        this.context = context;
+        this.service = service;
+        this.serializationProvider = serializationProvider;
+        configureRoutes();
     }
 
-    @Override
-    public String getPath() {
-        return "instructors";
+    private void configureRoutes() {
+        get(context + "instructors", (request, response) -> {
+                    Integer companyId = AuthUserRequestManager.getCompanyId(request);
+                    return service.getInstructors(companyId);
+                }, new JsonTransformer(serializationProvider)
+        );
     }
+
+
 }

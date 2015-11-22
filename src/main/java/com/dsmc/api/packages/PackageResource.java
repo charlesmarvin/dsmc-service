@@ -1,18 +1,28 @@
 package com.dsmc.api.packages;
 
-import com.dsmc.api.common.CrudResource;
+import com.dsmc.api.auth.AuthUserRequestManager;
+import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
 
-/**
- * Copyright 2015 Marvin Charles
- */
-public class PackageResource extends CrudResource<String, Package> {
-    public PackageResource(PackageService service, SerializationProvider serializationProvider) {
-        super(Package.class, service, serializationProvider);
+import static spark.Spark.get;
+
+public class PackageResource {
+    private final String context;
+    private final PackageService service;
+    private final SerializationProvider serializationProvider;
+
+    public PackageResource(String context, PackageService service, SerializationProvider serializationProvider) {
+        this.context = context;
+        this.service = service;
+        this.serializationProvider = serializationProvider;
+        configureRoutes();
     }
 
-    @Override
-    public String getPath() {
-        return "packages";
+    private void configureRoutes() {
+        get(context + "packages", (request, response) -> {
+                    Integer companyId = AuthUserRequestManager.getCompanyId(request);
+                    return service.getPackages(companyId);
+                }, new JsonTransformer(serializationProvider)
+        );
     }
 }

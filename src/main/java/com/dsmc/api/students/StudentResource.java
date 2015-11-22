@@ -1,19 +1,32 @@
 package com.dsmc.api.students;
 
-import com.dsmc.api.common.CrudResource;
+import com.dsmc.api.auth.AuthUserRequestManager;
+import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
+
+import static spark.Spark.get;
 
 /**
  * Copyright 2015 Marvin Charles
  */
-public class StudentResource extends CrudResource<String, Student> {
+public class StudentResource {
 
-    public StudentResource(StudentService studentService, SerializationProvider serializationProvider) {
-        super(Student.class, studentService, serializationProvider);
+    private final String context;
+    private final StudentService studentService;
+    private final SerializationProvider serializationProvider;
+
+    public StudentResource(String context, StudentService studentService, SerializationProvider serializationProvider) {
+        this.context = context;
+        this.studentService = studentService;
+        this.serializationProvider = serializationProvider;
+        configureRoutes();
     }
 
-    @Override
-    public String getPath() {
-        return "students";
+    private void configureRoutes() {
+        get(context + "students", (request, response) -> {
+                    Integer companyId = AuthUserRequestManager.getCompanyId(request);
+                    return studentService.getStudents(companyId);
+                }, new JsonTransformer(serializationProvider)
+        );
     }
 }
