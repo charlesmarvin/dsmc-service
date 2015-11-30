@@ -23,4 +23,13 @@ public class StudentService {
                 .fetch()
                 .into(Student.class);
     }
+
+    public Student getStudentById(Integer companyId, Integer studentId) {
+        com.dsmc.data.tables.Student s = com.dsmc.data.tables.Student.STUDENT.as("s");
+        return context.select()
+                .from(s)
+                .where(s.COMPANY_ID.equal(companyId).and(s.ID.equal(studentId)))
+                .fetchOne()
+                .into(Student.class);
+    }
 }

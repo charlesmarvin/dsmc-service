@@ -28,5 +28,12 @@ public class StudentResource {
                     return studentService.getStudents(companyId);
                 }, new JsonTransformer(serializationProvider)
         );
+
+        get(context + "students/:id", (request, response) -> {
+                    Integer companyId = AuthUserRequestManager.getCompanyId(request);
+                    Integer studentId = Integer.parseInt(request.params("id"));
+                    return studentService.getStudentById(companyId, studentId);
+                }, new JsonTransformer(serializationProvider)
+        );
     }
 }
