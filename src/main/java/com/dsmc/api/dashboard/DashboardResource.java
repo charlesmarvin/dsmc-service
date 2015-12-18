@@ -27,7 +27,6 @@ public class DashboardResource {
 
     protected void configure() {
         get(context + "dashboard", (request, response) -> {
-                    request.raw().startAsync();
                     Integer companyId = AuthUserRequestManager.getCompanyId(request);
                     Map<String, Object> dashboardData = new HashMap<>(4);
                     CompletableFuture<Void> f1 = dashboardService.getStudentsAsync(companyId)
