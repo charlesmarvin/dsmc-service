@@ -7,7 +7,9 @@ import com.dsmc.data.tables.StudentEnrollment;
 import org.jooq.DSLContext;
 import org.jooq.Record2;
 
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static org.jooq.impl.DSL.concat;
@@ -32,6 +34,10 @@ public class DashboardService {
                 .collect(Collectors.toMap(Record2::value1, Record2::value2));
     }
 
+    CompletableFuture<Map<String, Integer>> getStudentsByGenderCountAsync(Integer companyId) {
+        return CompletableFuture.supplyAsync(() -> getStudentsByGenderCount(companyId));
+    }
+
     Map<String, Integer> getStudentsByPackageCount(Integer companyId) {
         CoursePackage p = CoursePackage.COURSE_PACKAGE.as("p");
         StudentEnrollment se = StudentEnrollment.STUDENT_ENROLLMENT.as("se");
@@ -46,6 +52,10 @@ public class DashboardService {
                 .collect(Collectors.toMap(Record2::value1, Record2::value2));
     }
 
+    CompletableFuture<Map<String, Integer>> getStudentsByPackageCountAsync(Integer companyId) {
+        return CompletableFuture.supplyAsync(() -> getStudentsByPackageCount(companyId));
+    }
+
     Map<String, Integer> getStudentsByInstructorCount(Integer companyId) {
         Instructor i = Instructor.INSTRUCTOR.as("i");
         StudentEnrollment se = StudentEnrollment.STUDENT_ENROLLMENT.as("se");
@@ -58,5 +68,22 @@ public class DashboardService {
                 .fetch()
                 .stream()
                 .collect(Collectors.toMap(Record2::value1, Record2::value2));
+    }
+
+    CompletableFuture<Map<String, Integer>> getStudentsByInstructorCountAsync(Integer companyId) {
+        return CompletableFuture.supplyAsync(() -> getStudentsByInstructorCount(companyId));
+    }
+
+    List<com.dsmc.data.tables.pojos.Student> getStudents(Integer companyId) {
+        Student s = Student.STUDENT.as("s");
+        return context.select()
+                .from(s)
+                .where(s.COMPANY_ID.equal(companyId))
+                .fetch()
+                .into(com.dsmc.data.tables.pojos.Student.class);
+    }
+
+    CompletableFuture<List<com.dsmc.data.tables.pojos.Student>> getStudentsAsync(Integer companyId) {
+        return CompletableFuture.supplyAsync(() -> getStudents(companyId));
     }
 }
