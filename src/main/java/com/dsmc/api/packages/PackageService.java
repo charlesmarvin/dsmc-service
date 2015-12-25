@@ -21,4 +21,13 @@ public class PackageService {
                 .fetch()
                 .into(CoursePackage.class);
     }
+
+    public CoursePackage getPackageById(Integer companyId, Integer packageId) {
+        com.dsmc.data.tables.CoursePackage c = com.dsmc.data.tables.CoursePackage.COURSE_PACKAGE.as("c");
+        return context.select()
+                .from(c)
+                .where(c.COMPANY_ID.equal(companyId).and(c.ID.equal(packageId)))
+                .fetchOne()
+                .into(CoursePackage.class);
+    }
 }
