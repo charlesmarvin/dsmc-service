@@ -3,8 +3,11 @@ package com.dsmc.api.students;
 import com.dsmc.api.auth.AuthUserRequestManager;
 import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
+import com.dsmc.data.tables.pojos.Student;
 
-import static spark.Spark.get;
+import java.util.Map;
+
+import static spark.Spark.*;
 
 /**
  * Copyright 2015 Marvin Charles
@@ -14,11 +17,13 @@ public class StudentResource {
     private final String context;
     private final StudentService studentService;
     private final SerializationProvider serializationProvider;
+    private final JsonTransformer transformer;
 
     public StudentResource(String context, StudentService studentService, SerializationProvider serializationProvider) {
         this.context = context;
         this.studentService = studentService;
         this.serializationProvider = serializationProvider;
+        this.transformer = new JsonTransformer(serializationProvider);
         configureRoutes();
     }
 
@@ -26,14 +31,33 @@ public class StudentResource {
         get(context + "students", (request, response) -> {
                     Integer companyId = AuthUserRequestManager.getCompanyId(request);
                     return studentService.getStudents(companyId);
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
         );
 
         get(context + "students/:id", (request, response) -> {
                     Integer companyId = AuthUserRequestManager.getCompanyId(request);
                     Integer studentId = Integer.parseInt(request.params("id"));
                     return studentService.getStudentById(companyId, studentId);
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
+        );
+
+        post(context + "students", (request, response) -> {
+                    Integer companyId = AuthUserRequestManager.getCompanyId(request);
+                    Student student = serializationProvider.get().fromJson(request.body(), Student.class);
+                    studentService.create(companyId, student);
+                    response.status(201);
+                    return "OK";
+                }, transformer
+        );
+
+        put(context + "students/:id", (request, response) -> {
+                    Integer companyId = AuthUserRequestManager.getCompanyId(request);
+                    Integer studentId = Integer.parseInt(request.params("id"));
+                    Map<String, ?> updates = serializationProvider.get().fromJson(request.body(), Map.class);
+                    studentService.update(companyId, studentId, updates);
+                    response.status(201);
+                    return "OK";
+                }, transformer
         );
     }
 }
