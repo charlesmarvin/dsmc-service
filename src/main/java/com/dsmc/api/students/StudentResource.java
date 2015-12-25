@@ -4,6 +4,7 @@ import com.dsmc.api.auth.AuthUserRequestManager;
 import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
 import com.dsmc.data.tables.pojos.Student;
+import spark.ResponseTransformer;
 
 import java.util.Map;
 
@@ -17,7 +18,7 @@ public class StudentResource {
     private final String context;
     private final StudentService studentService;
     private final SerializationProvider serializationProvider;
-    private final JsonTransformer transformer;
+    private final ResponseTransformer transformer;
 
     public StudentResource(String context, StudentService studentService, SerializationProvider serializationProvider) {
         this.context = context;
