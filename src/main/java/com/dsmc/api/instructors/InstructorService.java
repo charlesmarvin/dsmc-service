@@ -20,4 +20,13 @@ public class InstructorService {
                 .fetch()
                 .into(Instructor.class);
     }
+
+    public Instructor getInstructorById(Integer companyId, Integer instructorId) {
+        com.dsmc.data.tables.Instructor i = com.dsmc.data.tables.Instructor.INSTRUCTOR.as("i");
+        return context.select()
+                .from(i)
+                .where(i.COMPANY_ID.equal(companyId).and(i.ID.equal(instructorId)))
+                .fetchOne()
+                .into(Instructor.class);
+    }
 }

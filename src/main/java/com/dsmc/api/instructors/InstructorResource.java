@@ -24,6 +24,13 @@ public class InstructorResource {
                     return service.getInstructors(companyId);
                 }, new JsonTransformer(serializationProvider)
         );
+
+        get(context + "instructors/:id", (request, response) -> {
+                    Integer companyId = AuthUserRequestManager.getCompanyId(request);
+                    Integer instructorId = Integer.parseInt(request.params("id"));
+                    return service.getInstructorById(companyId, instructorId);
+                }, new JsonTransformer(serializationProvider)
+        );
     }
 
 
