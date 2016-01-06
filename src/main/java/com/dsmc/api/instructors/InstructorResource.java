@@ -39,7 +39,7 @@ public class InstructorResource {
                 }, transformer
         );
 
-        post(context + "students", (request, response) -> {
+        post(context + "instructors", (request, response) -> {
                     Integer companyId = AuthUserRequestManager.getCompanyId(request);
                     Instructor instructor = serializationProvider.get().fromJson(request.body(), Instructor.class);
                     service.create(companyId, instructor);
