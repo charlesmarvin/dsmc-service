@@ -8,7 +8,9 @@ import spark.ResponseTransformer;
 
 import java.util.Map;
 
-import static spark.Spark.*;
+import static spark.Spark.get;
+import static spark.Spark.post;
+import static spark.Spark.put;
 
 /**
  * Copyright 2015 Marvin Charles

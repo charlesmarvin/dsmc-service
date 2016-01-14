@@ -5,5 +5,6 @@ package com.dsmc.api.core.transformers;
  */
 public interface Serializer {
     String toJson(Object o);
+
     <T> T fromJson(String s, Class<T> type);
 }

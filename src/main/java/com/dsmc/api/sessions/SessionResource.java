@@ -3,7 +3,6 @@ package com.dsmc.api.sessions;
 import com.dsmc.api.auth.AuthUserRequestManager;
 import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
-import com.dsmc.data.tables.pojos.CoursePackage;
 import com.dsmc.data.tables.pojos.InstructionSession;
 import spark.ResponseTransformer;
 

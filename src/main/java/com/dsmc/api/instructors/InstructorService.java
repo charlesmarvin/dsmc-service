@@ -20,7 +20,7 @@ public class InstructorService {
         this.context = context;
     }
 
-    public List<Instructor> getInstructors(Integer companyId){
+    public List<Instructor> getInstructors(Integer companyId) {
         com.dsmc.data.tables.Instructor i = com.dsmc.data.tables.Instructor.INSTRUCTOR.as("i");
         return context.select()
                 .from(i)

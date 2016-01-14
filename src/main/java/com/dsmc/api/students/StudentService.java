@@ -24,7 +24,7 @@ public class StudentService {
         this.context = context;
     }
 
-    public List<Student> getStudents(Integer companyId){
+    public List<Student> getStudents(Integer companyId) {
         com.dsmc.data.tables.Student s = com.dsmc.data.tables.Student.STUDENT.as("s");
         return context.select()
                 .from(s)
@@ -55,7 +55,7 @@ public class StudentService {
         StudentRecord studentRecord = context.selectFrom(s)
                 .where(s.COMPANY_ID.equal(companyId).and(s.ID.equal(studentId)))
                 .fetchOne();
-        if (studentRecord==null) {
+        if (studentRecord == null) {
             throw new RuntimeException("Attempt to update unknown record");
         }
         Map<String, Object> recordUpdates = updates.entrySet().stream()

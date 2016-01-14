@@ -23,12 +23,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class UserAuthService {
-    private final static int ITERATION_NUMBER = 1000;
     public static final String TOKEN_SEPARATOR = ":";
+    private final static int ITERATION_NUMBER = 1000;
     private final DSLContext context;
 
     public UserAuthService(DSLContext context) {
         this.context = context;
+    }
+
+    private static byte[] base64ToByte(String digest) {
+        return Base64.decodeBase64(digest);
+    }
+
+    private static String byteToBase64(byte[] hash) {
+        return new String(Base64.decodeBase64(hash));
     }
 
     public boolean createLogin(String login, String password) {
@@ -58,7 +66,7 @@ public class UserAuthService {
 
     public com.dsmc.data.tables.pojos.AdminUser getAdminUserFromToken(String token) {
         String[] parts = token.split(TOKEN_SEPARATOR);
-        if(parts.length!=2) {
+        if (parts.length != 2) {
             return null;
         }
         String username = parts[0];
@@ -68,16 +76,16 @@ public class UserAuthService {
                 .from(ac)
                 .where(ac.LOGIN.equal(username))
                 .fetchOne();
-        if (record==null) {
+        if (record == null) {
             return null;
         }
         String secret = record.value1();
         try {
             JWTVerifier verifier = new JWTVerifier(secret);
             Map<String, Object> claims = verifier.verify(token);
-            Integer claimUserId = (Integer)claims.get("userId");
-            Integer claimCompanyId = (Integer)claims.get("companyId");
-            String claimUsername = (String)claims.get("username");
+            Integer claimUserId = (Integer) claims.get("userId");
+            Integer claimCompanyId = (Integer) claims.get("companyId");
+            String claimUsername = (String) claims.get("username");
 
             return new com.dsmc.data.tables.pojos.AdminUser(claimUserId,
                     claimCompanyId, claimUsername,
@@ -99,7 +107,7 @@ public class UserAuthService {
                 .join(ac).on(a.USERNAME.equal(a.USERNAME))
                 .where(a.USERNAME.equal(username))
                 .fetchOne();
-        if (rs==null) {
+        if (rs == null) {
             return null;
         }
         HashMap<String, Object> claims = new HashMap<>();
@@ -176,14 +184,6 @@ public class UserAuthService {
             input = digest.digest(input);
         }
         return input;
-    }
-
-    private static byte[] base64ToByte(String digest) {
-        return Base64.decodeBase64(digest);
-    }
-
-    private static String byteToBase64(byte[] hash) {
-        return new String(Base64.decodeBase64(hash));
     }
 
 

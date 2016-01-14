@@ -4,10 +4,6 @@ import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
 import com.google.gson.JsonObject;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static spark.Spark.get;
 import static spark.Spark.post;
 
 public class UserAuthResource {
@@ -55,12 +51,13 @@ public class UserAuthResource {
     }
 
     private static class UserLogin {
+        private String username;
+        private String password;
+        private boolean remember;
+
         public UserLogin() {
 
         }
-
-        private String username;
-        private String password;
 
         public boolean isRemember() {
             return remember;
@@ -69,8 +66,6 @@ public class UserAuthResource {
         public void setRemember(boolean remember) {
             this.remember = remember;
         }
-
-        private boolean remember;
 
         public String getUsername() {
             return username;

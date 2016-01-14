@@ -20,7 +20,7 @@ public class SessionService {
         this.context = context;
     }
 
-    public List<InstructionSession> getSessions(Integer companyId){
+    public List<InstructionSession> getSessions(Integer companyId) {
         com.dsmc.data.tables.InstructionSession s = com.dsmc.data.tables.InstructionSession.INSTRUCTION_SESSION.as("s");
         return context.selectFrom(s)
                 .where(s.COMPANY_ID.equal(companyId))
@@ -47,7 +47,7 @@ public class SessionService {
         InstructionSessionRecord instructionSessionRecord = context.selectFrom(s)
                 .where(s.COMPANY_ID.equal(companyId).and(s.ID.equal(instructionSessionId)))
                 .fetchOne();
-        if (instructionSessionRecord==null) {
+        if (instructionSessionRecord == null) {
             throw new RuntimeException("Attempt to update unknown record");
         }
         Map<String, Object> recordUpdates = updates.entrySet().stream()
