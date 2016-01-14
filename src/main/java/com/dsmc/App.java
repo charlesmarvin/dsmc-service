@@ -11,6 +11,8 @@ import com.dsmc.api.instructors.InstructorResource;
 import com.dsmc.api.instructors.InstructorService;
 import com.dsmc.api.packages.PackageResource;
 import com.dsmc.api.packages.PackageService;
+import com.dsmc.api.sessions.SessionResource;
+import com.dsmc.api.sessions.SessionService;
 import com.dsmc.api.students.StudentResource;
 import com.dsmc.api.students.StudentService;
 import com.dsmc.data.tables.pojos.AdminUser;
@@ -30,29 +32,33 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-import static spark.Spark.*;
+import static spark.Spark.after;
+import static spark.Spark.before;
+import static spark.Spark.halt;
+import static spark.Spark.options;
+import static spark.Spark.port;
 
 /**
  * Copyright 2015 Marvin Charles
  */
 public class App {
+    public static final String AUTHORIZATION_TYPE_PREFIX = "Bearer ";
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
     private static final int PORT = System.getenv("CF_INSTANCE_PORT") != null ? Integer.parseInt(System.getenv("PORT")) : 8080;
     private static final String DB_SERVICE_NAME = "dsmc-pgdb";
     private static final String DB_SERVICE_PROVIDER = "elephantsql";
     private static final String API_CONTEXT = "/api/";
     private static final String SECURE_API_CONTEXT = API_CONTEXT + "s/";
-    public static final String AUTHORIZATION_TYPE_PREFIX = "Bearer ";
 
     public static void main(String[] args) throws Exception {
         port(PORT);
         SerializationProvider serializationProvider = new JacksonSerializationProvider();
-
         DSLContext context = DSL.using(getDBConnection(), SQLDialect.POSTGRES_9_4);
         new StudentResource(SECURE_API_CONTEXT, new StudentService(context), serializationProvider);
         new PackageResource(SECURE_API_CONTEXT, new PackageService(context), serializationProvider);
         new InstructorResource(SECURE_API_CONTEXT, new InstructorService(context), serializationProvider);
         new DashboardResource(SECURE_API_CONTEXT, new DashboardService(context), serializationProvider);
+        new SessionResource(SECURE_API_CONTEXT, new SessionService(context), serializationProvider);
         UserAuthService authService = new UserAuthService(context);
         new UserAuthResource(API_CONTEXT, authService, serializationProvider);
 
