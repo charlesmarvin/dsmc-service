@@ -37,7 +37,11 @@ public class DashboardResource {
                             .thenAccept(studentsByPackageCount -> dashboardData.put("studentsByPackageCount", studentsByPackageCount));
                     CompletableFuture<Void> f4 = dashboardService.getStudentsByInstructorCountAsync(companyId)
                             .thenAccept(studentsByInstructorCount -> dashboardData.put("studentsByInstructorCount", studentsByInstructorCount));
-                    CompletableFuture.allOf(f1, f2, f3, f4).get();
+                    CompletableFuture<Void> f5 = dashboardService.getInstructorsAsync(companyId)
+                            .thenAccept(instructors -> dashboardData.put("instructors", instructors));
+                    CompletableFuture<Void> f6 = dashboardService.getInstructionSessionsAsync(companyId)
+                            .thenAccept(instructionSessions -> dashboardData.put("instructionSessions", instructionSessions));
+                    CompletableFuture.allOf(f1, f2, f3, f4, f5, f6).get();
                     return dashboardData;
                 }, new JsonTransformer(serializationProvider)
         );
