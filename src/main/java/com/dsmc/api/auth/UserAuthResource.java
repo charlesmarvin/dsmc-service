@@ -12,11 +12,13 @@ public class UserAuthResource {
     private final String context;
     private final UserAuthService userAuthService;
     private final SerializationProvider serializationProvider;
+    private final JsonTransformer transformer;
 
     public UserAuthResource(String context, UserAuthService service, SerializationProvider serializationProvider) {
         this.context = context;
         this.userAuthService = service;
         this.serializationProvider = serializationProvider;
+        transformer = new JsonTransformer(serializationProvider);
         configure();
     }
 
@@ -34,7 +36,7 @@ public class UserAuthResource {
                         response.status(401);
                     }
                     return response;
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
         );
 
         post(context + "credentials", APPLICATION_JSON, (request, response) -> {
@@ -46,7 +48,7 @@ public class UserAuthResource {
                         response.status(500);
                     }
                     return response;
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
         );
     }
 

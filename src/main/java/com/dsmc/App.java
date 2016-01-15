@@ -25,12 +25,15 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import spark.Request;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static spark.Spark.after;
 import static spark.Spark.before;
@@ -48,42 +51,60 @@ public class App {
     private static final String DB_SERVICE_NAME = "dsmc-pgdb";
     private static final String DB_SERVICE_PROVIDER = "elephantsql";
     private static final String API_CONTEXT = "/api/";
-    private static final String SECURE_API_CONTEXT = API_CONTEXT + "s/";
+    private static final String AUTHORIZATION_API_CONTEXT = API_CONTEXT + "auth/";
+    private static final Map<String, String> CORS_HEADERS = new HashMap<>();
 
+    static {
+        CORS_HEADERS.put("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+        CORS_HEADERS.put("Access-Control-Allow-Origin", "*");
+        CORS_HEADERS.put("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin,");
+        CORS_HEADERS.put("Access-Control-Allow-Credentials", "true");
+    }
     public static void main(String[] args) throws Exception {
         port(PORT);
         SerializationProvider serializationProvider = new JacksonSerializationProvider();
         DSLContext context = DSL.using(getDBConnection(), SQLDialect.POSTGRES_9_4);
-        new StudentResource(SECURE_API_CONTEXT, new StudentService(context), serializationProvider);
-        new PackageResource(SECURE_API_CONTEXT, new PackageService(context), serializationProvider);
-        new InstructorResource(SECURE_API_CONTEXT, new InstructorService(context), serializationProvider);
-        new DashboardResource(SECURE_API_CONTEXT, new DashboardService(context), serializationProvider);
-        new SessionResource(SECURE_API_CONTEXT, new SessionService(context), serializationProvider);
+        new StudentResource(API_CONTEXT, new StudentService(context), serializationProvider);
+        new PackageResource(API_CONTEXT, new PackageService(context), serializationProvider);
+        new InstructorResource(API_CONTEXT, new InstructorService(context), serializationProvider);
+        new DashboardResource(API_CONTEXT, new DashboardService(context), serializationProvider);
+        new SessionResource(API_CONTEXT, new SessionService(context), serializationProvider);
         UserAuthService authService = new UserAuthService(context);
-        new UserAuthResource(API_CONTEXT, authService, serializationProvider);
+        new UserAuthResource(AUTHORIZATION_API_CONTEXT, authService, serializationProvider);
 
-        before(SECURE_API_CONTEXT + "*", (request, response) -> {
+        before((request, response) -> {
+            LOGGER.debug("Handling: {} {}", request.requestMethod(), request.uri());
             if (request.requestMethod().equals("OPTIONS")) return;
+            boolean isAuthRequest = isAuthRequest(request);
             try {
                 String authHeader = request.headers("Authorization");
-                if (StringUtils.isBlank(authHeader)
-                        || !authHeader.startsWith(AUTHORIZATION_TYPE_PREFIX)) {
+                if (!isAuthRequest
+                        && (StringUtils.isBlank(authHeader)
+                        || !authHeader.startsWith(AUTHORIZATION_TYPE_PREFIX))) {
                     halt(401);
                     return;
                 }
-                String token = authHeader.replace(AUTHORIZATION_TYPE_PREFIX, "");
-                AdminUser adminUser = authService.getAdminUserFromToken(token);
-                if (adminUser==null) {
-                    halt(401);
-                    return;
+                if (!isAuthRequest) {
+                    String token = authHeader.replace(AUTHORIZATION_TYPE_PREFIX, "");
+                    AdminUser adminUser = authService.getAdminUserFromToken(token);
+                    if (adminUser == null) {
+                        halt(401);
+                        return;
+                    }
+                    AuthUserRequestManager.setAuthUser(request, adminUser);
                 }
-                AuthUserRequestManager.setAuthUser(request, adminUser);
             } catch (Exception e) {
                 LOGGER.error("Could not authenticate request", e);
                 halt(401);
             }
         });
-        options("/*", (request,response)->{
+        after((request, response) -> {
+            CORS_HEADERS.forEach(response::header);
+            response.header("Cache-Control", "private, no-store, no-cache, must-revalidate");
+            response.header("Content-Type", "application/json; charset=utf-8");
+            response.header("Pragma", "no-cache");
+        });
+        options("/*", (request, response) -> {
 
             String accessControlRequestHeaders = request.headers("Access-Control-Request-Headers");
             if (accessControlRequestHeaders != null) {
@@ -91,26 +112,18 @@ public class App {
             }
 
             String accessControlRequestMethod = request.headers("Access-Control-Request-Method");
-            if(accessControlRequestMethod != null){
+            if (accessControlRequestMethod != null) {
                 response.header("Access-Control-Allow-Methods", accessControlRequestMethod);
             }
 
             response.status(200);
             return "OK";
         });
-        before((request, response) -> {
-            LOGGER.debug("Handling: {} {}", request.requestMethod(), request.uri());
-            response.header("Content-Type", "application/json; charset=utf-8");
-            response.header("Access-Control-Allow-Origin", "*");
-            response.header("Access-Control-Allow-Credentials", "true");
-        });
-
-        after((request, response) -> {
-            response.header("Cache-Control", "private, no-store, no-cache, must-revalidate");
-            response.header("Pragma", "no-cache");
-        });
     }
 
+    private static boolean isAuthRequest(Request request) {
+        return request.uri().startsWith(AUTHORIZATION_API_CONTEXT);
+    }
     private static Connection getDBConnection() throws SQLException, ClassNotFoundException, URISyntaxException {
         Class.forName("org.postgresql.Driver");
         URI dbUri = new URI(getConnectionUri());
