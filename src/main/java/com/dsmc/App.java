@@ -46,8 +46,6 @@ public class App {
     private static final String AUTHORIZATION_TYPE_PREFIX = "Bearer ";
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
     private static final int PORT = System.getenv("CF_INSTANCE_PORT") != null ? Integer.parseInt(System.getenv("PORT")) : 8080;
-    private static final String DB_SERVICE_NAME = "dsmc-pgdb";
-    private static final String DB_SERVICE_PROVIDER = "elephantsql";
     private static final String API_CONTEXT = "/api/";
     private static final String AUTHORIZATION_API_CONTEXT = API_CONTEXT + "auth/";
     private static final Map<String, String> ACCESS_CONTROL_HEADERS = new HashMap<>();
