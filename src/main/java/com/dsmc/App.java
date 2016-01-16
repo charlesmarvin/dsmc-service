@@ -113,7 +113,7 @@ public class App {
             if (appConfig.getApiClients().stream()
                     .anyMatch(client -> origin.getHost().equals(client))) {
                 String allowedOrigin = String.format("%s://%s", origin.getProtocol(), origin.getHost());
-                if (origin.getPort() != origin.getDefaultPort()) {
+                if (origin.getPort() != -1) {
                     allowedOrigin = allowedOrigin + ":" + origin.getPort();
                 }
                 response.header("Access-Control-Allow-Origin", allowedOrigin);
