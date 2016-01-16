@@ -16,9 +16,6 @@ import com.dsmc.api.sessions.SessionService;
 import com.dsmc.api.students.StudentResource;
 import com.dsmc.api.students.StudentService;
 import com.dsmc.data.tables.pojos.AdminUser;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
@@ -29,6 +26,7 @@ import spark.Request;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -45,24 +43,34 @@ import static spark.Spark.port;
  * Copyright 2015 Marvin Charles
  */
 public class App {
-    public static final String AUTHORIZATION_TYPE_PREFIX = "Bearer ";
+    private static final String AUTHORIZATION_TYPE_PREFIX = "Bearer ";
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
     private static final int PORT = System.getenv("CF_INSTANCE_PORT") != null ? Integer.parseInt(System.getenv("PORT")) : 8080;
     private static final String DB_SERVICE_NAME = "dsmc-pgdb";
     private static final String DB_SERVICE_PROVIDER = "elephantsql";
     private static final String API_CONTEXT = "/api/";
     private static final String AUTHORIZATION_API_CONTEXT = API_CONTEXT + "auth/";
-    private static final Map<String, String> CORS_HEADERS = new HashMap<>();
+    private static final Map<String, String> ACCESS_CONTROL_HEADERS = new HashMap<>();
+    private static final Map<String, String> CACHE_CONTROL_HEADERS = new HashMap<>();
+    private static AppConfig appConfig;
 
     static {
-        CORS_HEADERS.put("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-        CORS_HEADERS.put("Access-Control-Allow-Origin", "*");
-        CORS_HEADERS.put("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin,");
-        CORS_HEADERS.put("Access-Control-Allow-Credentials", "true");
+        ACCESS_CONTROL_HEADERS.put("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+        ACCESS_CONTROL_HEADERS.put("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin,");
+        ACCESS_CONTROL_HEADERS.put("Access-Control-Allow-Credentials", "true");
+
+        CACHE_CONTROL_HEADERS.put("Cache-Control", "private, no-store, no-cache, must-revalidate");
+        CACHE_CONTROL_HEADERS.put("Content-Type", "application/json; charset=utf-8");
+        CACHE_CONTROL_HEADERS.put("Pragma", "no-cache");
     }
+
     public static void main(String[] args) throws Exception {
         port(PORT);
         SerializationProvider serializationProvider = new JacksonSerializationProvider();
+        appConfig = serializationProvider.get().fromJson(System.getenv("APP_CONFIG"), AppConfig.class);
+        if (appConfig == null) {
+            throw new RuntimeException("APP_CONFIG environment is not set.");
+        }
         DSLContext context = DSL.using(getDBConnection(), SQLDialect.POSTGRES_9_4);
         new StudentResource(API_CONTEXT, new StudentService(context), serializationProvider);
         new PackageResource(API_CONTEXT, new PackageService(context), serializationProvider);
@@ -73,8 +81,8 @@ public class App {
         new UserAuthResource(AUTHORIZATION_API_CONTEXT, authService, serializationProvider);
 
         before((request, response) -> {
-            LOGGER.debug("Handling: {} {}", request.requestMethod(), request.uri());
             if (request.requestMethod().equals("OPTIONS")) return;
+            LOGGER.debug("Handling: {} {}", request.requestMethod(), request.uri());
             boolean isAuthRequest = isAuthRequest(request);
             try {
                 String authHeader = request.headers("Authorization");
@@ -99,23 +107,19 @@ public class App {
             }
         });
         after((request, response) -> {
-            CORS_HEADERS.forEach(response::header);
-            response.header("Cache-Control", "private, no-store, no-cache, must-revalidate");
-            response.header("Content-Type", "application/json; charset=utf-8");
-            response.header("Pragma", "no-cache");
+            ACCESS_CONTROL_HEADERS.forEach(response::header);
+            CACHE_CONTROL_HEADERS.forEach(response::header);
+            URL origin = new URL(request.headers("Origin"));
+            if (appConfig.getApiClients().stream()
+                    .anyMatch(client -> origin.getHost().equals(client))) {
+                String allowedOrigin = String.format("%s://%s", origin.getProtocol(), origin.getHost());
+                if (origin.getPort() != origin.getDefaultPort()) {
+                    allowedOrigin = allowedOrigin + ":" + origin.getPort();
+                }
+                response.header("Access-Control-Allow-Origin", allowedOrigin);
+            }
         });
         options("/*", (request, response) -> {
-
-            String accessControlRequestHeaders = request.headers("Access-Control-Request-Headers");
-            if (accessControlRequestHeaders != null) {
-                response.header("Access-Control-Allow-Headers", accessControlRequestHeaders);
-            }
-
-            String accessControlRequestMethod = request.headers("Access-Control-Request-Method");
-            if (accessControlRequestMethod != null) {
-                response.header("Access-Control-Allow-Methods", accessControlRequestMethod);
-            }
-
             response.status(200);
             return "OK";
         });
@@ -124,30 +128,13 @@ public class App {
     private static boolean isAuthRequest(Request request) {
         return request.uri().startsWith(AUTHORIZATION_API_CONTEXT);
     }
+
     private static Connection getDBConnection() throws SQLException, ClassNotFoundException, URISyntaxException {
         Class.forName("org.postgresql.Driver");
-        URI dbUri = new URI(getConnectionUri());
+        URI dbUri = new URI(appConfig.getDatabaseConnectionUri());
         String username = dbUri.getUserInfo().split(":")[0];
         String password = dbUri.getUserInfo().split(":")[1];
         String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
         return DriverManager.getConnection(dbUrl, username, password);
-    }
-
-    private static String getConnectionUri() {
-        try {
-            JsonParser parser = new JsonParser();
-            JsonObject cfg = (JsonObject) parser.parse(System.getenv("VCAP_SERVICES"));
-            for (JsonElement conn : cfg.getAsJsonArray(DB_SERVICE_PROVIDER)) {
-                if (conn instanceof JsonObject) {
-                    JsonObject obj = (JsonObject) conn;
-                    if (DB_SERVICE_NAME.equals(obj.get("name").getAsString())) {
-                        return ((JsonObject) obj.get("credentials")).get("uri").getAsString();
-                    }
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error getting database connection info.", e);
-        }
-        throw new RuntimeException("Database service not configured");
     }
 }
