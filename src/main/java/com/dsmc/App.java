@@ -80,29 +80,34 @@ public class App {
 
         before((request, response) -> {
             if (request.requestMethod().equals("OPTIONS")) return;
-            LOGGER.debug("Handling: {} {}", request.requestMethod(), request.uri());
+            AdminUser adminUser = null;
             boolean isAuthRequest = isAuthRequest(request);
             try {
                 String authHeader = request.headers("Authorization");
                 if (!isAuthRequest
                         && (StringUtils.isBlank(authHeader)
                         || !authHeader.startsWith(AUTHORIZATION_TYPE_PREFIX))) {
-                    halt(401);
-                    return;
+                    throw new RuntimeException("Path requires authorization but no Authorization token present in request header.");
                 }
-                if (!isAuthRequest) {
+                if (!StringUtils.isBlank(authHeader)) {
                     String token = authHeader.replace(AUTHORIZATION_TYPE_PREFIX, "");
-                    AdminUser adminUser = authService.getAdminUserFromToken(token);
-                    if (adminUser == null) {
-                        halt(401);
-                        return;
+                    adminUser = authService.getAdminUserFromToken(token);
+                    if (isAuthRequest && adminUser == null) {
+                        throw new RuntimeException("Could not authenticate from Authorization token.");
                     }
                     AuthUserRequestManager.setAuthUser(request, adminUser);
                 }
             } catch (Exception e) {
-                LOGGER.error("Could not authenticate request", e);
+                String errorMsg = String.format("Could not authenticate request: %s %s", request.requestMethod(), request.uri());
+                LOGGER.warn(errorMsg, e);
                 halt(401);
             }
+            String user = "unknown";
+            if (adminUser != null) {
+                user = String.format("%d:%d:%s", adminUser.getCompanyId(), adminUser.getId(), adminUser.getUsername());
+            }
+            LOGGER.debug("Handling: {} {} [user - {}]", request.requestMethod(), request.uri(), user);
+
         });
         after((request, response) -> {
             ACCESS_CONTROL_HEADERS.forEach(response::header);

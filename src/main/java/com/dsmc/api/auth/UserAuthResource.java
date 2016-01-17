@@ -4,6 +4,7 @@ import com.dsmc.api.core.transformers.JsonTransformer;
 import com.dsmc.api.core.transformers.SerializationProvider;
 import com.google.gson.JsonObject;
 
+import static spark.Spark.get;
 import static spark.Spark.post;
 
 public class UserAuthResource {
@@ -39,13 +40,11 @@ public class UserAuthResource {
                 }, transformer
         );
 
-        post(context + "credentials", APPLICATION_JSON, (request, response) -> {
-                    String content = request.body();
-                    UserLogin resource = serializationProvider.get().fromJson(content, UserLogin.class);
-                    if (userAuthService.createLogin(resource.getUsername(), resource.getPassword())) {
-                        response.status(201);
+        get(context + "token", APPLICATION_JSON, (request, response) -> {
+            if (AuthUserRequestManager.hasAuthUser(request)) {
+                response.status(200);
                     } else {
-                        response.status(500);
+                response.status(401);
                     }
                     return response;
                 }, transformer
