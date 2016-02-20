@@ -5,6 +5,8 @@ import com.dsmc.api.auth.UserAuthResource;
 import com.dsmc.api.auth.UserAuthService;
 import com.dsmc.api.core.transformers.JacksonSerializationProvider;
 import com.dsmc.api.core.transformers.SerializationProvider;
+import com.dsmc.api.courses.CourseResource;
+import com.dsmc.api.courses.CourseService;
 import com.dsmc.api.dashboard.DashboardResource;
 import com.dsmc.api.dashboard.DashboardService;
 import com.dsmc.api.instructors.InstructorResource;
@@ -72,6 +74,7 @@ public class App {
         DSLContext context = DSL.using(getDBConnection(), SQLDialect.POSTGRES_9_4);
         new StudentResource(API_CONTEXT, new StudentService(context), serializationProvider);
         new PackageResource(API_CONTEXT, new PackageService(context), serializationProvider);
+        new CourseResource(API_CONTEXT, new CourseService(context), serializationProvider);
         new InstructorResource(API_CONTEXT, new InstructorService(context), serializationProvider);
         new DashboardResource(API_CONTEXT, new DashboardService(context), serializationProvider);
         new SessionResource(API_CONTEXT, new SessionService(context), serializationProvider);
