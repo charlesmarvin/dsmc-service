@@ -6,4 +6,4 @@ applications:
   path: build/distributions/dsmc-SNAPSHOT.zip
   buildpack: https://github.com/cloudfoundry/java-buildpack.git
   services:
-     - dsmc-db
+     - dsmc-pgdb
