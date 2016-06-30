@@ -16,12 +16,14 @@ import static spark.Spark.get;
 public class DashboardResource {
     private final String context;
     private final DashboardService dashboardService;
-    private final SerializationProvider serializationProvider;
+    private final JsonTransformer transformer;
 
-    public DashboardResource(String context, DashboardService dashboardService, SerializationProvider serializationProvider) {
+    public DashboardResource(String context,
+                             DashboardService dashboardService,
+                             SerializationProvider serializationProvider) {
         this.context = context;
         this.dashboardService = dashboardService;
-        this.serializationProvider = serializationProvider;
+        this.transformer = new JsonTransformer(serializationProvider);
         configure();
     }
 
@@ -43,7 +45,7 @@ public class DashboardResource {
                             .thenAccept(instructionSessions -> dashboardData.put("instructionSessions", instructionSessions));
                     CompletableFuture.allOf(f1, f2, f3, f4, f5, f6).get();
                     return dashboardData;
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
         );
     }
 }

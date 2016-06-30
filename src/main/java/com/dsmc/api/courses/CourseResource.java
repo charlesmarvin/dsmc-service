@@ -37,7 +37,7 @@ public class CourseResource {
             Integer companyId = AuthUserRequestManager.getCompanyId(request);
             Integer packageId = Integer.parseInt(request.params("id"));
                     return service.getCourseById(companyId, packageId);
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
         );
 
         post(context + "courses", (request, response) -> {

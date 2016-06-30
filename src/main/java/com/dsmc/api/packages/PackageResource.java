@@ -37,7 +37,7 @@ public class PackageResource {
             Integer companyId = AuthUserRequestManager.getCompanyId(request);
             Integer packageId = Integer.parseInt(request.params("id"));
                     return service.getPackageById(companyId, packageId);
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
         );
 
         post(context + "packages", (request, response) -> {

@@ -2,6 +2,7 @@ package com.dsmc;
 
 import com.dsmc.api.auth.UserAuthResource;
 import com.dsmc.api.auth.UserAuthService;
+import com.dsmc.api.core.filters.AuthFilter;
 import com.dsmc.api.core.filters.CORSFilter;
 import com.dsmc.api.core.transformers.JacksonSerializationProvider;
 import com.dsmc.api.core.transformers.SerializationProvider;
@@ -38,7 +39,7 @@ public class App {
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
     private static final int PORT = System.getenv("CF_INSTANCE_PORT") != null ? Integer.parseInt(System.getenv("PORT")) : 8080;
     private static final String API_CONTEXT = "/api/";
-    private static final String AUTHORIZATION_API_CONTEXT = API_CONTEXT + "auth/";
+    private static final String AUTHORIZATION_API_CONTEXT = "/auth/";
 
     private static AppConfig appConfig;
 
@@ -61,9 +62,8 @@ public class App {
         UserAuthService authService = new UserAuthService(context);
         new UserAuthResource(AUTHORIZATION_API_CONTEXT, authService, serializationProvider);
 
-        new CORSFilter(appConfig, AUTHORIZATION_API_CONTEXT, authService);
-
-
+        new CORSFilter(appConfig);
+        new AuthFilter(API_CONTEXT, authService);
     }
 
     private static Connection getDBConnection() throws SQLException, ClassNotFoundException, URISyntaxException {

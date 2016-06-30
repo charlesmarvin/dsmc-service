@@ -2,6 +2,7 @@ package com.dsmc.api.auth;
 
 import com.auth0.jwt.JWTSigner;
 import com.auth0.jwt.JWTVerifier;
+import com.dsmc.App;
 import com.dsmc.data.tables.AdminUser;
 import com.dsmc.data.tables.AuthCredential;
 import com.dsmc.data.tables.Company;
@@ -11,6 +12,8 @@ import org.jooq.DSLContext;
 import org.jooq.Record1;
 import org.jooq.Record3;
 import org.jooq.tools.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -23,7 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class UserAuthService {
-    public static final String TOKEN_SEPARATOR = ":";
+    private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
+    private static final String TOKEN_SEPARATOR = ":";
     private final static int ITERATION_NUMBER = 1000;
     private final DSLContext context;
 
@@ -91,7 +95,7 @@ public class UserAuthService {
                     claimCompanyId, claimUsername,
                     null, null, null, null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Token verification failed.", e);
         }
         return null;
     }

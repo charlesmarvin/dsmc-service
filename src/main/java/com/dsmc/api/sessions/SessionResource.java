@@ -34,7 +34,7 @@ public class SessionResource {
                     Integer companyId = AuthUserRequestManager.getCompanyId(request);
                     Integer instructionSessionId = Integer.parseInt(request.params("id"));
                     return service.getInstructionSessionById(companyId, instructionSessionId);
-                }, new JsonTransformer(serializationProvider)
+                }, transformer
         );
 
         post(context + "instructionSessions", (request, response) -> {

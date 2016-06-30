@@ -23,7 +23,7 @@ public class UserAuthResource {
         configure();
     }
 
-    protected void configure() {
+    private void configure() {
         post(context + "login", APPLICATION_JSON, (request, response) -> {
                     UserLogin userLogin = serializationProvider.get().fromJson(request.body(), UserLogin.class);
                     if (userAuthService.authenticate(userLogin.getUsername(), userLogin.getPassword())) {
@@ -68,7 +68,7 @@ public class UserAuthResource {
             this.remember = remember;
         }
 
-        public String getUsername() {
+        String getUsername() {
             return username;
         }
 
@@ -76,7 +76,7 @@ public class UserAuthResource {
             this.username = username;
         }
 
-        public String getPassword() {
+        String getPassword() {
             return password;
         }
 
