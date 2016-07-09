@@ -33,6 +33,10 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.+'
 }
 
+configurations.all {
+    exclude module: 'slf4j-simple'
+}
+
 mainClassName = 'com.dsmc.App'
 
 run {
