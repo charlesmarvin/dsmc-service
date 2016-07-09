@@ -1,5 +1,6 @@
 package com.dsmc;
 
+import com.dsmc.api.auth.AuthSigningKeyResolver;
 import com.dsmc.api.auth.UserAuthResource;
 import com.dsmc.api.auth.UserAuthService;
 import com.dsmc.api.core.filters.AuthFilter;
@@ -59,7 +60,8 @@ public class App {
         new InstructorResource(API_CONTEXT, new InstructorService(context), serializationProvider);
         new DashboardResource(API_CONTEXT, new DashboardService(context), serializationProvider);
         new SessionResource(API_CONTEXT, new SessionService(context), serializationProvider);
-        UserAuthService authService = new UserAuthService(context);
+        AuthSigningKeyResolver authSigningResolver = new AuthSigningKeyResolver(appConfig.getAuthKeys());
+        UserAuthService authService = new UserAuthService(context, authSigningResolver);
         new UserAuthResource(AUTHORIZATION_API_CONTEXT, authService, serializationProvider);
 
         new CORSFilter(appConfig);

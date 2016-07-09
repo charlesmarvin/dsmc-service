@@ -28,7 +28,7 @@ public class JacksonSerializationProvider implements SerializationProvider {
                 try {
                     return mapper.writeValueAsString(o);
                 } catch (JsonProcessingException e) {
-                    LOGGER.error("Failed to write JSON value");
+                    LOGGER.error("Failed to write JSON value", e);
                     return null;
                 }
             }
@@ -38,7 +38,7 @@ public class JacksonSerializationProvider implements SerializationProvider {
                 try {
                     return mapper.readValue(s, type);
                 } catch (IOException e) {
-                    LOGGER.error("Failed to read JSON value");
+                    LOGGER.error("Failed to read JSON value", e);
                     return null;
                 }
             }

@@ -1,15 +1,16 @@
 package com.dsmc.api.auth;
 
-import com.auth0.jwt.JWTSigner;
-import com.auth0.jwt.JWTVerifier;
 import com.dsmc.App;
 import com.dsmc.data.tables.AdminUser;
 import com.dsmc.data.tables.AuthCredential;
 import com.dsmc.data.tables.Company;
 import com.dsmc.data.tables.records.AuthCredentialRecord;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.Jwts;
 import org.apache.commons.codec.binary.Base64;
 import org.jooq.DSLContext;
-import org.jooq.Record1;
 import org.jooq.Record3;
 import org.jooq.tools.StringUtils;
 import org.slf4j.Logger;
@@ -22,17 +23,22 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 public class UserAuthService {
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
-    private static final String TOKEN_SEPARATOR = ":";
     private final static int ITERATION_NUMBER = 1000;
     private final DSLContext context;
+    private final AuthSigningKeyResolver signingKeyResolver;
+    private final SecureRandom defaultRandom;
 
-    public UserAuthService(DSLContext context) {
+    public UserAuthService(DSLContext context, AuthSigningKeyResolver signingKeyResolver) {
         this.context = context;
+        this.signingKeyResolver = signingKeyResolver;
+        defaultRandom = new SecureRandom();
+        LOGGER.info("defaultRandom algorithm: {}", defaultRandom.getAlgorithm());
     }
 
     private static byte[] base64ToByte(String digest) {
@@ -43,16 +49,14 @@ public class UserAuthService {
         return new String(Base64.decodeBase64(hash));
     }
 
-    public boolean createLogin(String login, String password) {
+    public void createLogin(String login, String password) {
         if (StringUtils.isBlank(login) || StringUtils.isBlank(password)) {
             throw new IllegalArgumentException("Supplied credentials are invalid");
         }
         try {
-            // Uses a secure Random not a simple Random
-            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
             // Salt generation 64 bits long
             byte[] bSalt = new byte[8];
-            random.nextBytes(bSalt);
+            defaultRandom.nextBytes(bSalt);
             // Digest computation
             byte[] bDigest = getHash(password, bSalt);
             String sDigest = byteToBase64(bDigest);
@@ -62,34 +66,21 @@ public class UserAuthService {
             credential.setPassword(sDigest);
             credential.setSalt(sSalt);
             credential.store();
-            return true;
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             throw new RuntimeException("Credential creation failed", e);
         }
     }
 
     public com.dsmc.data.tables.pojos.AdminUser getAdminUserFromToken(String token) {
-        String[] parts = token.split(TOKEN_SEPARATOR);
-        if (parts.length != 2) {
-            return null;
-        }
-        String username = parts[0];
-        token = parts[1];
-        AuthCredential ac = AuthCredential.AUTH_CREDENTIAL;
-        Record1<String> record = context.select(ac.JWT_TOKEN)
-                .from(ac)
-                .where(ac.LOGIN.equal(username))
-                .fetchOne();
-        if (record == null) {
-            return null;
-        }
-        String secret = record.value1();
         try {
-            JWTVerifier verifier = new JWTVerifier(secret);
-            Map<String, Object> claims = verifier.verify(token);
-            Integer claimUserId = (Integer) claims.get("userId");
-            Integer claimCompanyId = (Integer) claims.get("companyId");
-            String claimUsername = (String) claims.get("username");
+            Jwt<Header, Claims> jwt = Jwts.parser()
+                    .setSigningKeyResolver(signingKeyResolver)
+                    .parseClaimsJwt(token);
+
+            Claims claims = jwt.getBody();
+            Integer claimUserId = claims.get("userId", Integer.TYPE);
+            Integer claimCompanyId = claims.get("companyId", Integer.TYPE);
+            String claimUsername = claims.get("username", String.class);
 
             return new com.dsmc.data.tables.pojos.AdminUser(claimUserId,
                     claimCompanyId, claimUsername,
@@ -114,12 +105,21 @@ public class UserAuthService {
         if (rs == null) {
             return null;
         }
-        HashMap<String, Object> claims = new HashMap<>();
+
+        Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
         claims.put("userId", rs.value1());
         claims.put("companyId", rs.value2());
-        JWTSigner signer = new JWTSigner(rs.value3());
-        return username + TOKEN_SEPARATOR + signer.sign(claims);
+        Map<String, Object> headers = new HashMap<>();
+        AuthSigningKeyResolver.KeyDTO key = signingKeyResolver.getRandomKey();
+        headers.put("kid", key.getKeyId());
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setHeader(headers)
+                .setClaims(claims)
+                .signWith(key.getAlgo(), key.getKey())
+                .compact();
     }
 
     public boolean authenticate(String login, String password) {
